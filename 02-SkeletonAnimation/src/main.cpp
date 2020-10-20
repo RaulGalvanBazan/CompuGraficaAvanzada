@@ -84,6 +84,10 @@ Model modelDartLegoRightLeg;
 // Mayow
 Model mayowModelAnimate;
 
+Model dragonite;
+Model zombie;
+Model ivy;
+
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint skyboxTextureID;
 
@@ -95,12 +99,12 @@ GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
 GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
-std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
-		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
-		"../Textures/mp_bloodvalley/blood-valley_up.tga",
-		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
-		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
-		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+std::string fileNames[6] = { "../Textures/mp_vr/vr_ft.tga",
+		"../Textures/mp_vr/vr_bk.tga",
+		"../Textures/mp_vr/vr_up.tga",
+		"../Textures/mp_vr/vr_dn.tga",
+		"../Textures/mp_vr/vr_rt.tga",
+		"../Textures/mp_vr/vr_lf.tga" };
 
 bool exitApp = false;
 int lastMousePosX, offsetX = 0;
@@ -114,6 +118,9 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
+glm::mat4 modelMatrixDragonite = glm::mat4(1.0f);
+glm::mat4 modelMatrixZombie = glm::mat4(1.0f);
+glm::mat4 modelMatrixIvy = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 0;
@@ -291,6 +298,17 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	//Mayow
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
+
+	//Dragonite
+	dragonite.loadModel("../models/Dragonite/Dragonite.fbx");
+	dragonite.setShader(&shaderMulLighting);
+
+	//Zombie
+	//zombie.loadModel("C:/Users/galva/Documents/modelos/dividerheadzombie/dividerheadzombie.obj");
+	//zombie.setShader(&shaderMulLighting);
+
+	ivy.loadModel("C:/Users/galva/Documents/modelos/corpse/corpse2.obj");
+	ivy.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 
@@ -998,6 +1016,21 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+
+		//glm::mat4 modelMatrixDragoniteBody = glm::mat4(modelMatrixDragonite);
+		//modelMatrixDragoniteBody = glm::scale(modelMatrixDragoniteBody, glm::vec3(0.021, 0.021, 0.021));
+		//dragonite.setAnimationIndex(2);
+		//dragonite.render(modelMatrixDragoniteBody);
+
+		glm::mat4 modelMatrixZombieBody = glm::mat4(modelMatrixZombie);
+		modelMatrixZombieBody = glm::translate(modelMatrixZombieBody, glm::vec3(0, -0.5, 0));
+		//modelMatrixZombieBody = glm::scale(modelMatrixZombieBody, glm::vec3(0.025, 0.025, 0.025));
+		zombie.render(modelMatrixZombieBody);
+
+		glm::mat4 modelMatrixIvyBody = glm::mat4(modelMatrixIvy);
+		modelMatrixIvyBody = glm::translate(modelMatrixIvyBody, glm::vec3(0, -0.5, -0.5));
+		//modelMatrixZombieBody = glm::scale(modelMatrixZombieBody, glm::vec3(0.025, 0.025, 0.025));
+		ivy.render(modelMatrixIvyBody);
 
 		/*******************************************
 		 * Skybox
