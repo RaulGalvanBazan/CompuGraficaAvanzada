@@ -80,9 +80,10 @@ Model modelDartLegoRightLeg;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
-Model cowboy;
+//Model cowboy;
+Model wendigoAnimate;
 // Terrain model instance
-Terrain terrain(-1, -1, 200, 20, "../Textures/heightmap2.png");
+Terrain terrain(-1, -1, 180, 20, "../Textures/heightmap3.png");
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint skyboxTextureID;
@@ -95,12 +96,19 @@ GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
 GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
-std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
-		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
-		"../Textures/mp_bloodvalley/blood-valley_up.tga",
-		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
-		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
-		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+//std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_up.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+
+std::string fileNames[6] = { "../Textures/NightPath/posx.jpg",
+        "../Textures/NightPath/negx.jpg",
+        "../Textures/NightPath/posy.jpg",
+        "../Textures/NightPath/negy.jpg",
+        "../Textures/NightPath/posz.jpg",
+        "../Textures/NightPath/negz.jpg" };
 
 bool exitApp = false;
 int lastMousePosX, offsetX = 0;
@@ -113,8 +121,10 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
-glm::mat4 modelMatrixCowboy = glm::mat4(1.0f);
+//glm::mat4 modelMatrixCowboy = glm::mat4(1.0f);
+glm::mat4 modelMatrixWendigo = glm::mat4(1.0f);
 
+int wendigoRunning = 0;
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 0;
 bool enableCountSelected = true;
@@ -276,8 +286,12 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
-	cowboy.loadModel("../models/cowboy/Character Running.fbx");
-	cowboy.setShader(&shaderMulLighting);
+    //Wendigo
+    wendigoAnimate.loadModel("../models/Wendigo/wendigoAnimado.fbx");
+    wendigoAnimate.setShader(&shaderMulLighting);
+
+	/*cowboy.loadModel("../models/cowboy/Character Running.fbx");
+	cowboy.setShader(&shaderMulLighting);*/
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 
@@ -512,6 +526,7 @@ void destroy() {
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
+    wendigoAnimate.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -675,14 +690,17 @@ bool processInput(bool continueApplication) {
 	else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 		modelMatrixDart = glm::translate(modelMatrixDart, glm::vec3(0.02, 0.0, 0.0));
 
-	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-		modelMatrixCowboy = glm::rotate(modelMatrixCowboy, 0.02f, glm::vec3(0, 1, 0));
-	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-		modelMatrixCowboy = glm::rotate(modelMatrixCowboy, -0.02f, glm::vec3(0, 1, 0));
-	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-		modelMatrixCowboy = glm::translate(modelMatrixCowboy, glm::vec3(0.0, 0.0, 0.02));
-	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-		modelMatrixCowboy = glm::translate(modelMatrixCowboy, glm::vec3(0.0, 0.0, -0.02));
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        modelMatrixWendigo = glm::rotate(modelMatrixWendigo, 0.02f, glm::vec3(0, 1, 0));
+    else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        modelMatrixWendigo = glm::rotate(modelMatrixWendigo, -0.02f, glm::vec3(0, 1, 0));
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        //modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, 0.06));
+        wendigoRunning = 1;
+    else
+        wendigoRunning = 0;
+	/*else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, -0.06));*/
 
 	glfwPollEvents();
 	return continueApplication;
@@ -697,7 +715,7 @@ void applicationLoop() {
 
 	modelMatrixAircraft = glm::translate(modelMatrixAircraft, glm::vec3(10.0, 2.0, -17.5));
 
-	modelMatrixLambo = glm::translate(modelMatrixLambo, glm::vec3(23.0, 0.0, 0.0));
+	modelMatrixLambo = glm::translate(modelMatrixLambo, glm::vec3(0.0, 0.0, 10.0));
 
 	modelMatrixDart = glm::translate(modelMatrixDart, glm::vec3(3.0, 0.0, 20.0));
 
@@ -751,8 +769,8 @@ void applicationLoop() {
 		 *******************************************/
 		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
 		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.5, 0.5, 0.5)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
 		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
@@ -884,11 +902,25 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+        
+        //Wendigo
+        modelMatrixWendigo[3][1] = terrain.getHeightTerrain(modelMatrixWendigo[3][0], modelMatrixWendigo[3][2]);
+        glm::vec3 wendigoNormal = terrain.getNormalTerrain(modelMatrixWendigo[3][0], modelMatrixWendigo[3][2]);
 
-		modelMatrixCowboy[3][1] = terrain.getHeightTerrain(modelMatrixCowboy[3][0], modelMatrixCowboy[3][2]);
-		glm::mat4 modelMatrixCowboyBody = glm::mat4(modelMatrixCowboy);
-		modelMatrixCowboyBody = glm::scale(modelMatrixCowboy, glm::vec3(0.0025, 0.0025, 0.0025));
-		cowboy.render(modelMatrixCowboyBody);
+        glm::vec3 xaxis = glm::vec3(modelMatrixWendigo[0]);
+        glm::vec3 zaxis = glm::normalize(glm::cross(xaxis, wendigoNormal));
+        modelMatrixWendigo[1] = glm::vec4(wendigoNormal, 0.0);
+        modelMatrixWendigo[2] = glm::vec4(zaxis, 0.0);
+
+		glm::mat4 modelMatrixWendigoBody = glm::mat4(modelMatrixWendigo);
+        modelMatrixWendigoBody = glm::scale(modelMatrixWendigoBody, glm::vec3(0.035, 0.035, 0.035));
+        if (wendigoRunning) {
+            modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, 0.20));
+            wendigoAnimate.setAnimationIndex(0);
+        }
+        else
+            wendigoAnimate.setAnimationIndex(1);
+        wendigoAnimate.render(modelMatrixWendigoBody);
 
 		/*******************************************
 		 * Skybox
