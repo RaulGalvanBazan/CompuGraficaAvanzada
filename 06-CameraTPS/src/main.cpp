@@ -54,7 +54,9 @@ Shader shaderMulLighting;
 //Shader para el terreno
 Shader shaderTerrain;
 
-std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
+//std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
+std::shared_ptr<Camera> camera(new ThirdPersonCamera());
+float distanceFromTarget = 5.0;
 
 Sphere skyboxSphere(20, 20);
 
@@ -211,6 +213,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	// Init glew
@@ -302,6 +305,8 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
+    camera->setDistanceFromTarget(distanceFromTarget);
+    camera->setSensitivity(1.0f);
 
 	// Definimos el tamanio de la imagen
 	int imageWidth, imageHeight;
@@ -741,6 +746,11 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
 	lastMousePosY = ypos;
 }
 
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    distanceFromTarget -= yoffset;
+    camera->setDistanceFromTarget(distanceFromTarget);
+}
+
 void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	if (state == GLFW_PRESS) {
 		switch (button) {
@@ -762,8 +772,8 @@ bool processInput(bool continueApplication) {
 	if (exitApp || glfwWindowShouldClose(window) != 0) {
 		return false;
 	}
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    
+	/*if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera->moveFrontCamera(true, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		camera->moveFrontCamera(false, deltaTime);
@@ -772,7 +782,12 @@ bool processInput(bool continueApplication) {
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera->moveRightCamera(true, deltaTime);
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);*/
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        camera->mouseMoveCamera(offsetX, 0.0, deltaTime);
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        camera->mouseMoveCamera(0.0, offsetY, deltaTime);
 	offsetX = 0;
 	offsetY = 0;
 
@@ -922,7 +937,33 @@ void applicationLoop() {
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
-		glm::mat4 view = camera->getViewMatrix();
+
+        glm::vec3 axis;
+        glm::vec3 target;
+        float angleTarget;
+
+        if (modelSelected == 1) {
+            axis = glm::axis(glm::quat_cast(modelMatrixDart));
+            angleTarget = glm::angle(glm::quat_cast(modelMatrixDart));
+            target = modelMatrixDart[3];
+        }
+        else if (modelSelected == 2) {
+            axis = glm::axis(glm::quat_cast(modelMatrixMayow));
+            angleTarget = glm::angle(glm::quat_cast(modelMatrixMayow));
+            target = modelMatrixMayow[3];
+        }
+        if (std::isnan(angleTarget))
+            angleTarget = 0.0;
+        if (axis.y < 0)
+            angleTarget = -angleTarget;
+        if (modelSelected == 1)
+            angleTarget -= glm::radians(90.0f);
+        camera->setCameraTarget(target);
+        camera->setAngleTarget(angleTarget);
+        camera->updateCamera();
+        glm::mat4 view = camera->getViewMatrix();
+
+		//glm::mat4 view = camera->getViewMatrix();
 
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
