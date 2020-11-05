@@ -82,11 +82,16 @@ Model modelDartLegoRightLeg;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
+Model wendigoAnimate;
+Model heatherAnimate;
+//Variable de selección de animación
+int heatherAnimation = 0;
+
 // Terrain model instance
-Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
+Terrain terrain(-1, -1, 200, 24, "../Textures/heightmap4.png");
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
-GLuint textureTerrainBackgroundID; //, textureTerrainRID, textureTerrainGID, textureTerrainBID, textureTerrainBlendMapID;
+GLuint textureTerrainBackgroundID, textureTerrainRID, textureTerrainGID, textureTerrainBID, textureTerrainBlendMapID;       
 GLuint skyboxTextureID;
 
 GLenum types[6] = {
@@ -97,12 +102,20 @@ GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
 GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
-std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
-		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
-		"../Textures/mp_bloodvalley/blood-valley_up.tga",
-		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
-		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
-		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+//std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_up.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+
+std::string fileNames[6] = { "../Textures/NightPath/posx.jpg",
+        "../Textures/NightPath/negx.jpg",
+        "../Textures/NightPath/posy.jpg",
+        "../Textures/NightPath/negy.jpg",
+        "../Textures/NightPath/posz.jpg",
+        "../Textures/NightPath/negz.jpg" };
+
 
 bool exitApp = false;
 int lastMousePosX, offsetX = 0;
@@ -115,6 +128,11 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
+glm::mat4 modelMatrixWendigo = glm::mat4(1.0f);
+glm::mat4 modelMatrixHeather = glm::mat4(1.0f);
+
+int wendigoRunning = 0;
+int enableChange = 0;
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 0;
@@ -278,6 +296,13 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	//Mayow
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
+
+    //Wendigo
+    wendigoAnimate.loadModel("../models/Wendigo/wendigoAnimado.fbx");
+    wendigoAnimate.setShader(&shaderMulLighting);
+
+    heatherAnimate.loadModel("../models/heather/heatherAnimate.fbx");
+    heatherAnimate.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 
@@ -471,7 +496,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	textureLandingPad.freeImage(bitmap);
 
 	// Definiendo la textura a utilizar
-	Texture textureTerrainBackground("../Textures/grassy2.png");
+	Texture textureTerrainBackground("../Textures/forest2.png");
 	// Carga el mapa de bits (FIBITMAP es el tipo de dato de la libreria)
 	bitmap = textureTerrainBackground.loadImage();
 	// Convertimos el mapa de bits en un arreglo unidimensional de tipo unsigned char
@@ -502,8 +527,8 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	// Libera la memoria de la textura
 	textureTerrainBackground.freeImage(bitmap);
 
-	/*// Definiendo la textura a utilizar
-	Texture textureTerrainR("../Textures/mud.png");
+	// Definiendo la textura a utilizar
+	Texture textureTerrainR("../Textures/grass3.png");
 	// Carga el mapa de bits (FIBITMAP es el tipo de dato de la libreria)
 	bitmap = textureTerrainR.loadImage();
 	// Convertimos el mapa de bits en un arreglo unidimensional de tipo unsigned char
@@ -532,10 +557,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	} else
 		std::cout << "Failed to load texture" << std::endl;
 	// Libera la memoria de la textura
-	textureTerrainR.freeImage(bitmap);*/
+	textureTerrainR.freeImage(bitmap);
 
-	/*// Definiendo la textura a utilizar
-	Texture textureTerrainG("../Textures/grassFlowers.png");
+	// Definiendo la textura a utilizar
+	Texture textureTerrainG("../Textures/moss.png");
 	// Carga el mapa de bits (FIBITMAP es el tipo de dato de la libreria)
 	bitmap = textureTerrainG.loadImage();
 	// Convertimos el mapa de bits en un arreglo unidimensional de tipo unsigned char
@@ -564,10 +589,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	} else
 		std::cout << "Failed to load texture" << std::endl;
 	// Libera la memoria de la textura
-	textureTerrainG.freeImage(bitmap);*/
+	textureTerrainG.freeImage(bitmap);
 
-	/*// Definiendo la textura a utilizar
-	Texture textureTerrainB("../Textures/path.png");
+	// Definiendo la textura a utilizar
+	Texture textureTerrainB("../Textures/rockb.png");
 	// Carga el mapa de bits (FIBITMAP es el tipo de dato de la libreria)
 	bitmap = textureTerrainB.loadImage();
 	// Convertimos el mapa de bits en un arreglo unidimensional de tipo unsigned char
@@ -596,12 +621,12 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	} else
 		std::cout << "Failed to load texture" << std::endl;
 	// Libera la memoria de la textura
-	textureTerrainB.freeImage(bitmap);*/
+	textureTerrainB.freeImage(bitmap);
 
-	/*// Definiendo la textura a utilizar
-	Texture textureTerrainBlendMap("../Textures/blendMap.png");
+	// Definiendo la textura a utilizar
+	Texture textureTerrainBlendMap("../Textures/blendMap2.png");
 	// Carga el mapa de bits (FIBITMAP es el tipo de dato de la libreria)
-	bitmap = textureTerrainBlendMap.loadImage();
+	bitmap = textureTerrainBlendMap.loadImage(true);
 	// Convertimos el mapa de bits en un arreglo unidimensional de tipo unsigned char
 	data = textureTerrainBlendMap.convertToData(bitmap, imageWidth,
 			imageHeight);
@@ -628,7 +653,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	} else
 		std::cout << "Failed to load texture" << std::endl;
 	// Libera la memoria de la textura
-	textureTerrainBlendMap.freeImage(bitmap);*/
+	textureTerrainBlendMap.freeImage(bitmap);
 }
 
 void destroy() {
@@ -673,6 +698,8 @@ void destroy() {
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
+    wendigoAnimate.destroy();
+    heatherAnimate.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -682,10 +709,10 @@ void destroy() {
 	glDeleteTextures(1, &textureHighwayID);
 	glDeleteTextures(1, &textureLandingPadID);
 	glDeleteTextures(1, &textureTerrainBackgroundID);
-	/*glDeleteTextures(1, &textureTerrainRID);
+	glDeleteTextures(1, &textureTerrainRID);
 	glDeleteTextures(1, &textureTerrainGID);
 	glDeleteTextures(1, &textureTerrainBID);
-	glDeleteTextures(1, &textureTerrainBlendMapID);*/
+	glDeleteTextures(1, &textureTerrainBlendMapID);
 
 	// Cube Maps Delete
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -755,7 +782,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 2)
+		if(modelSelected > 5)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -841,6 +868,50 @@ bool processInput(bool continueApplication) {
 	else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 		modelMatrixDart = glm::translate(modelMatrixDart, glm::vec3(0.02, 0.0, 0.0));
 
+    //Heather
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        modelMatrixHeather = glm::rotate(modelMatrixHeather, 0.02f, glm::vec3(0, 1, 0));
+    }
+    else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        modelMatrixHeather = glm::rotate(modelMatrixHeather, -0.02f, glm::vec3(0, 1, 0));
+    }
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && 
+        glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_RELEASE) {
+        heatherAnimation = 1;
+        modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(0.0, 0.0, 0.04));
+    }
+    else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        heatherAnimation = 2;
+        modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(0.0, 0.0, -0.03));
+    }
+    else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
+        glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        heatherAnimation = 3;
+        modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(0.0, 0.0, 0.11));
+    }
+    else if (modelSelected == 3)
+        heatherAnimation = 0;
+
+    //Para rotar todas las animaciones que hay del model de Heather
+    if (modelSelected == 4 && glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && enableChange == 1) {
+        enableChange = 0;
+        heatherAnimation++;
+        if (heatherAnimation > 7)
+            heatherAnimation = 0;
+    }
+    else if (modelSelected == 4 && glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE)
+        enableChange = 1;
+
+    if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        modelMatrixWendigo = glm::rotate(modelMatrixWendigo, 0.02f, glm::vec3(0, 1, 0));
+    else if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        modelMatrixWendigo = glm::rotate(modelMatrixWendigo, -0.02f, glm::vec3(0, 1, 0));
+    if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        //modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, 0.06));
+        wendigoRunning = 1;
+    else
+        wendigoRunning = 0;
+
 	glfwPollEvents();
 	return continueApplication;
 }
@@ -860,6 +931,10 @@ void applicationLoop() {
 
 	modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(13.0f, 0.05f, -5.0f));
 	modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+    modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, -15.0));
+
+    modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(-0.5, 0.0, 0.0));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -948,6 +1023,25 @@ void applicationLoop() {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureTerrainBackgroundID);
 		shaderTerrain.setInt("backgroundTexture", 0);
+
+        
+        //Se activa la textura de la tierra
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureTerrainRID);
+        shaderTerrain.setInt("rTexture", 1);
+        //Se activa la textura de flores
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, textureTerrainGID);
+        shaderTerrain.setInt("gTexture", 2);
+        //Se activa la textura del camino
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, textureTerrainBID);
+        shaderTerrain.setInt("bTexture", 4);
+        //Se activa la textura del mapa de mezcla
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, textureTerrainBlendMapID);
+        shaderTerrain.setInt("blendMapTexture", 5);
+        
 		shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(40, 40)));
 		terrain.render();
 		shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(0, 0)));
@@ -1056,6 +1150,33 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+
+        modelMatrixHeather[3][1] = terrain.getHeightTerrain(modelMatrixHeather[3][0], modelMatrixHeather[3][2]);
+        glm::mat4 modelMatrixHeatherBody = glm::mat4(modelMatrixHeather);
+        modelMatrixHeatherBody = glm::scale(modelMatrixHeatherBody, glm::vec3(0.025, 0.025, 0.025));
+
+        heatherAnimate.setAnimationIndex(heatherAnimation);
+        heatherAnimate.render(modelMatrixHeatherBody);
+
+
+        modelMatrixWendigo[3][1] = terrain.getHeightTerrain(modelMatrixWendigo[3][0], modelMatrixWendigo[3][2]);
+        glm::vec3 wendigoNormal = terrain.getNormalTerrain(modelMatrixWendigo[3][0], modelMatrixWendigo[3][2]);
+
+        glm::vec3 xaxis = glm::vec3(modelMatrixWendigo[0]);
+        glm::vec3 zaxis = glm::normalize(glm::cross(xaxis, wendigoNormal));
+        modelMatrixWendigo[1] = glm::vec4(wendigoNormal, 0.0);
+        modelMatrixWendigo[2] = glm::vec4(zaxis, 0.0);
+
+        glm::mat4 modelMatrixWendigoBody = glm::mat4(modelMatrixWendigo);
+        modelMatrixWendigoBody = glm::scale(modelMatrixWendigoBody, glm::vec3(0.035, 0.035, 0.035));
+        if (wendigoRunning) {
+            modelMatrixWendigo = glm::translate(modelMatrixWendigo, glm::vec3(0.0, 0.0, 0.20));
+            wendigoAnimate.setAnimationIndex(0);
+        }
+        else
+            wendigoAnimate.setAnimationIndex(1);
+        wendigoAnimate.render(modelMatrixWendigoBody);
+
 
 		/*******************************************
 		 * Skybox
