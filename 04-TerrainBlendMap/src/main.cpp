@@ -131,6 +131,8 @@ glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixWendigo = glm::mat4(1.0f);
 glm::mat4 modelMatrixHeather = glm::mat4(1.0f);
 
+bool SaveFrame = false, aviableSave = true, modelChange = false;
+
 int wendigoRunning = 0;
 int enableChange = 0;
 
@@ -875,7 +877,7 @@ bool processInput(bool continueApplication) {
     else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
         modelMatrixHeather = glm::rotate(modelMatrixHeather, -0.02f, glm::vec3(0, 1, 0));
     }
-    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && 
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS &&
         glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_RELEASE) {
         heatherAnimation = 1;
         modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(0.0, 0.0, 0.04));
@@ -889,13 +891,25 @@ bool processInput(bool continueApplication) {
         heatherAnimation = 3;
         modelMatrixHeather = glm::translate(modelMatrixHeather, glm::vec3(0.0, 0.0, 0.11));
     }
-    else if (modelSelected == 3)
-        heatherAnimation = 0;
+    if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && enableChange == 1) {
+        enableChange = 0;
+        heatherAnimation = 4;
+        TimeManager::Instance().resetStartTime();
+    }
+    else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_L) == GLFW_RELEASE)
+        enableChange = 1;
+
+    //else if (modelSelected == 3)
+    //    heatherAnimation = 0;
+
+    if(modelChange && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+
 
     //Para rotar todas las animaciones que hay del model de Heather
     if (modelSelected == 4 && glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && enableChange == 1) {
         enableChange = 0;
         heatherAnimation++;
+        TimeManager::Instance().resetStartTime();
         if (heatherAnimation > 7)
             heatherAnimation = 0;
     }
