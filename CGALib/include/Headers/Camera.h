@@ -69,6 +69,14 @@ public:
 		return this->front;
 	}
 
+    void setFront(glm::vec3 front) {
+        this->front = front;
+    }
+
+    void setYaw(float yaw) {
+        this->yaw = yaw;
+    }
+
 	glm::vec3 getRight() {
 		return this->right;
 	}

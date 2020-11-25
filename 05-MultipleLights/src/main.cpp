@@ -90,6 +90,7 @@ Model mayowModelAnimate;
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 13, "../Textures/heightmap.png");
 
+
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint textureTerrainBackgroundID, textureTerrainRID, textureTerrainGID, textureTerrainBID, textureTerrainBlendMapID;
 GLuint skyboxTextureID;
@@ -1183,7 +1184,7 @@ void applicationLoop() {
         spotLightPosition = glm::vec3(modelMatrixLamboChasis * glm::vec4(0.787555, 0.639112, 2.26068, 1));
         //Orientacion en relacion al chasis
         spotLightOrientation = glm::normalize(glm::vec3(modelMatrixLamboChasis[2]));
-        spotLightOrientation.y = -0.4;
+        spotLightOrientation.y -= 0.4;
         //Para el shader de objetos
         shaderMulLighting.setVectorFloat3("spotLights[1].light.ambient", glm::value_ptr(glm::vec3(0.0, 0.0, 0.0)));
         shaderMulLighting.setVectorFloat3("spotLights[1].light.diffuse", glm::value_ptr(glm::vec3(0.8, 0.95, 0.8)));
