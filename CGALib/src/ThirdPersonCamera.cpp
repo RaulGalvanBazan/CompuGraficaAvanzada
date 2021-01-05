@@ -59,3 +59,15 @@ void ThirdPersonCamera::updateCamera(){
     this->right = glm::normalize(glm::cross(this->front, this->worldUp));
     this->up = glm::normalize(glm::cross(this->right, this->front));
 }
+
+void ThirdPersonCamera::resetCamera() {
+    pitch = glm::radians(20.0f);
+    yaw = 0.0f;
+    angleAroundTarget = 0.0f;
+    angleTarget = 0.0;
+    updateCamera();
+}
+
+glm::vec3 ThirdPersonCamera::mouseMoveCamera2(float xoffset, float yoffset, float dt) {
+    return glm::vec3(0, 0, 0);
+}

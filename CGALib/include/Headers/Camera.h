@@ -45,6 +45,8 @@ public:
 	virtual void mouseMoveCamera(float xoffset, float yoffset, float dt) = 0;
 	virtual void scrollMoveCamera(float soffset, float dt) = 0;
 	virtual void updateCamera() = 0;
+    virtual void resetCamera() = 0;
+    virtual glm::vec3 mouseMoveCamera2(float xoffset, float yoffset, float dt) = 0;
 	glm::mat4 getViewMatrix() {
 		return glm::lookAt(position, position + front, worldUp);
 	}
@@ -75,6 +77,14 @@ public:
 
     void setYaw(float yaw) {
         this->yaw = yaw;
+    }
+
+    float getYaw() {
+        return this->yaw;
+    }
+
+    float getPitch() {
+        return this->pitch;
     }
 
 	glm::vec3 getRight() {
@@ -114,6 +124,7 @@ public:
 	void setDistanceFromTarget(float distanceFromTarget) {
 		this->distanceFromTarget = distanceFromTarget;
 	}
+
 
 protected:
 	glm::vec3 position;

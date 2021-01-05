@@ -33,8 +33,10 @@ class DLL_PUBLIC ThirdPersonCamera: public Camera
 public:
     ThirdPersonCamera();
     void mouseMoveCamera(float xoffset, float yoffset, float dt);
+    glm::vec3 mouseMoveCamera2(float xoffset, float yoffset, float dt);
     void scrollMoveCamera(float soffset, float dt);
     void updateCamera();
+    void resetCamera();
 };
 
 #endif // THIRDPERSONCAMERA_H

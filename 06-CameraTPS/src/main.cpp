@@ -334,7 +334,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
-	camera->setPosition(glm::vec3(0.0, 0.2, 10.0));
+	camera->setPosition(glm::vec3(0.0, 0.2, 20.0));
     camera->setDistanceFromTarget(distanceFromTarget);
     camera->setSensitivity(1.0f);
 

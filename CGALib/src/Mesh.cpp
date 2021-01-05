@@ -23,7 +23,7 @@ Mesh::~Mesh() {
 	this->destroy();
 }
 
-void Mesh::render(glm::mat4 parentTrans) {
+void Mesh::render(glm::mat4 parentTrans, bool instanced, int amount, GLuint vao) {
 	// Enlace de las texturas apropiadas
 	GLuint diffuseNr = 1;
 	GLuint specularNr = 1;
@@ -54,7 +54,10 @@ void Mesh::render(glm::mat4 parentTrans) {
 	}
 
 	// Se Dibuja la maya
-	AbstractModel::render(parentTrans);
+    if (instanced)
+        AbstractModel::renderIns(parentTrans, amount, vao, this->vertexArray.size());
+    else
+	    AbstractModel::render(parentTrans);
 
 	// Siempre es buena practica colocar los datos defaults antes de ser configurados.
 	for (GLuint i = 0; i < this->textures.size(); i++) {

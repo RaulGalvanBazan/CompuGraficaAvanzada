@@ -160,6 +160,16 @@ public:
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 
+    void renderIns(glm::mat4 parentTrans, int amount, GLuint vao, int size) {
+        shader_ptr->turnOn();
+        glBindVertexArray(vao);
+        glDrawElementsInstanced(GL_TRIANGLES, size, GL_UNSIGNED_INT, 0, amount);
+        glBindVertexArray(0);
+        shader_ptr->turnOff();
+        //this->enableFillMode();
+    }
+
+
 	void render(glm::mat4 parentTrans = glm::mat4(1.0f)) {
 		render(0, index.size(), parentTrans);
 	}

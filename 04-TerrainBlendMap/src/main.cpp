@@ -21,6 +21,7 @@
 #include "Headers/Cylinder.h"
 #include "Headers/Box.h"
 #include "Headers/FirstPersonCamera.h"
+#include "Headers/ThirdPersonCamera.h"
 
 //GLM include
 #define GLM_FORCE_RADIANS
@@ -53,7 +54,8 @@ Shader shaderMulLighting;
 //Shader para el terreno
 Shader shaderTerrain;
 
-std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
+std::shared_ptr<Camera> camera(new ThirdPersonCamera());
+float distanceFromTarget = 5.0;
 
 Sphere skyboxSphere(20, 20);
 
@@ -176,6 +178,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action,
 		int mode);
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod);
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void init(int width, int height, std::string strTitle, bool bFullScreen);
 void destroy();
 bool processInput(bool continueApplication = true);
@@ -217,6 +220,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	// Init glew
@@ -307,6 +311,8 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
     heatherAnimate.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
+    camera->setDistanceFromTarget(distanceFromTarget);
+    camera->setSensitivity(1.0f);
 
 	// Definimos el tamanio de la imagen
 	int imageWidth, imageHeight;
@@ -745,6 +751,15 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
 	lastMousePosY = ypos;
 }
 
+void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+    distanceFromTarget -= yoffset;
+    if (distanceFromTarget > 12)
+        distanceFromTarget = 12;
+    if (distanceFromTarget < 2)
+        distanceFromTarget = 2;
+    camera->setDistanceFromTarget(distanceFromTarget);
+};
+
 void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	if (state == GLFW_PRESS) {
 		switch (button) {
@@ -767,16 +782,23 @@ bool processInput(bool continueApplication) {
 		return false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->moveFrontCamera(true, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->moveFrontCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->moveRightCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->moveRightCamera(true, deltaTime);
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+	//if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	//	camera->moveFrontCamera(true, deltaTime);
+	//if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	//	camera->moveFrontCamera(false, deltaTime);
+	//if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	//	camera->moveRightCamera(false, deltaTime);
+	//if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	//	camera->moveRightCamera(true, deltaTime);
+	//if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	//	camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        camera->mouseMoveCamera(offsetX, 0.0, deltaTime);
+    
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        camera->mouseMoveCamera(0.0, offsetY, deltaTime);
+
 	offsetX = 0;
 	offsetY = 0;
 
@@ -902,8 +924,6 @@ bool processInput(bool continueApplication) {
     //else if (modelSelected == 3)
     //    heatherAnimation = 0;
 
-    if(modelChange && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-
 
     //Para rotar todas las animaciones que hay del model de Heather
     if (modelSelected == 4 && glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && enableChange == 1) {
@@ -974,7 +994,30 @@ void applicationLoop() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
-				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
+				(float) screenWidth / (float) screenHeight, 0.01f, 90.0f);
+
+        glm::vec3 axis;
+        glm::vec3 target;
+        float angleTarget;
+
+        if (modelSelected == 3) {
+            axis = glm::axis(glm::quat_cast(modelMatrixHeather));
+            angleTarget = glm::angle(glm::quat_cast(modelMatrixHeather));
+            target = modelMatrixHeather[3];
+            target.x += 0.8;
+            target.y += 4;
+        }
+
+        std::cout << axis.x << "   " << axis.y << "    " << axis.z << std::endl;
+
+        if (std::isnan(angleTarget))
+            angleTarget = 0.0;
+        if (axis.y < 0)
+            angleTarget = -angleTarget;
+
+        camera->setCameraTarget(target);
+        camera->setAngleTarget(angleTarget);
+        camera->updateCamera();
 		glm::mat4 view = camera->getViewMatrix();
 
 		// Settea la matriz de vista y projection al shader con solo color
@@ -1001,25 +1044,25 @@ void applicationLoop() {
 		 * Propiedades Luz direccional
 		 *******************************************/
 		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.03, 0.03, 0.03)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.2, 0.2, 0.2)));
 		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
 		 * Propiedades Luz direccional Terrain
 		 *******************************************/
 		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
-		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
-		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.03, 0.03, 0.03)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.2, 0.2, 0.2)));
 		shaderTerrain.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
 		 * Propiedades SpotLights
 		 *******************************************/
-		shaderMulLighting.setInt("spotLightCount", 0);
-		shaderTerrain.setInt("spotLightCount", 0);
+		shaderMulLighting.setInt("spotLightCount", 1);
+		shaderTerrain.setInt("spotLightCount", 1);
 
 		/*******************************************
 		 * Propiedades PointLights
@@ -1165,12 +1208,43 @@ void applicationLoop() {
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
 
+        //Heather
         modelMatrixHeather[3][1] = terrain.getHeightTerrain(modelMatrixHeather[3][0], modelMatrixHeather[3][2]);
         glm::mat4 modelMatrixHeatherBody = glm::mat4(modelMatrixHeather);
         modelMatrixHeatherBody = glm::scale(modelMatrixHeatherBody, glm::vec3(0.025, 0.025, 0.025));
-
         heatherAnimate.setAnimationIndex(heatherAnimation);
         heatherAnimate.render(modelMatrixHeatherBody);
+
+        glm::vec3 spotLightPosition = glm::vec3(modelMatrixHeather * glm::vec4(0.03167, 5.22043, 0.174895, 1));
+        glm::vec3 spotLightOrientation = glm::normalize(glm::vec3(modelMatrixHeather[2]));
+        spotLightOrientation.y -= 0.35;
+
+        shaderMulLighting.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.6, 0.6, 0.6)));
+        shaderMulLighting.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(1.0, 1.0, 0.8)));
+        shaderMulLighting.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0.1, 0.1, 0.1)));
+        shaderMulLighting.setVectorFloat3("spotLights[0].position", glm::value_ptr(spotLightPosition));
+        shaderMulLighting.setVectorFloat3("spotLights[0].direction", glm::value_ptr(spotLightOrientation));
+        //Vectores de atenuacion
+        shaderMulLighting.setFloat("spotLights[0].constant", 0.2);
+        shaderMulLighting.setFloat("spotLights[0].linear", 0.001);
+        shaderMulLighting.setFloat("spotLights[0].quadratic", 0.008);
+        //Angulo
+        shaderMulLighting.setFloat("spotLights[0].cutOff", cos(glm::radians(10.5f)));
+        shaderMulLighting.setFloat("spotLights[0].outerCutOff", cos(glm::radians(15.5f)));
+        //Para el shader del terrenos
+        shaderTerrain.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.6, 0.6, 0.6)));
+        shaderTerrain.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(1.0, 1.0, 0.8)));
+        shaderTerrain.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0.1, 0.1, 0.1)));
+        shaderTerrain.setVectorFloat3("spotLights[0].position", glm::value_ptr(spotLightPosition));
+        //shaderTerrain.setVectorFloat3("spotLights[1].direction", glm::value_ptr(glm::vec3(0.0, -0.4, 1.0)));
+        shaderTerrain.setVectorFloat3("spotLights[0].direction", glm::value_ptr(spotLightOrientation));
+        //Vectores de atenuacion
+        shaderTerrain.setFloat("spotLights[0].constant", 0.2);
+        shaderTerrain.setFloat("spotLights[0].linear", 0.001);
+        shaderTerrain.setFloat("spotLights[0].quadratic", 0.008);
+        //Angulo
+        shaderTerrain.setFloat("spotLights[0].cutOff", cos(glm::radians(10.5f)));
+        shaderTerrain.setFloat("spotLights[0].outerCutOff", cos(glm::radians(15.5f)));
 
 
         modelMatrixWendigo[3][1] = terrain.getHeightTerrain(modelMatrixWendigo[3][0], modelMatrixWendigo[3][2]);

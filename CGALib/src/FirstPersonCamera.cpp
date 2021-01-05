@@ -19,10 +19,28 @@ void FirstPersonCamera::mouseMoveCamera(float xoffset, float yoffset, float dt) 
 	yaw += xoffset;
 	pitch += yoffset;
 
-	updateCamera();
+    //updateCamera();
+}
+
+glm::vec3 FirstPersonCamera::mouseMoveCamera2(float xoffset, float yoffset, float dt) {
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    this->front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    this->front.y = sin(glm::radians(pitch));
+    this->front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    this->front = glm::normalize(this->front);
+    this->right = glm::normalize(glm::cross(this->front, this->worldUp));
+    this->up = glm::normalize(glm::cross(this->right, this->front));
+    return this->front;
 }
 
 void FirstPersonCamera::scrollMoveCamera(float soffset, float dt) {
+}
+
+void FirstPersonCamera::resetCamera() {
 }
 
 void FirstPersonCamera::updateCamera() {
