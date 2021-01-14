@@ -207,7 +207,7 @@ GLuint posBuf[2], velBuf[2], age[2];
 GLuint particleArray[2];
 GLuint feedback[2];
 GLuint drawBuf = 1;
-float particleSize = 0.5, particleLifetime = 3.0;
+float particleSize = 0.5, particleLifetime = 5.0;
 double currTimeParticlesAnimationFire, lastTimeParticlesAnimationFire;
 
 // Colliders
@@ -897,7 +897,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 		std::cout << "Failed to load texture" << std::endl;
 	textureParticlesFountain.freeImage(bitmap);
 
-	Texture textureParticleFire("../Textures/fire.png");
+	Texture textureParticleFire("../Textures/smoke.png");
 	bitmap = textureParticleFire.loadImage();
 	data = textureParticleFire.convertToData(bitmap, imageWidth, imageHeight);
 	glGenTextures(1, &textureParticleFireID);
