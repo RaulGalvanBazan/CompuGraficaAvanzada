@@ -18,7 +18,7 @@ void main()
     vec3 pos = vec3(0.0);
     Transp = 0.0;
 
-    // Particle dosen't exist until the start time
+    // Particula no existe hasta que llegue al tiempo inicial
     if( Time > StartTime ) {
         float t = Time - StartTime;
 
