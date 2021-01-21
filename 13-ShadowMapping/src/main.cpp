@@ -66,6 +66,10 @@ Shader shaderTerrain;
 Shader shaderParticlesFountain;
 //Shader para las particulas de fuego
 Shader shaderParticlesFire;
+//Shader para visualizar el buffer de profundidad
+Shader shaderViewDepth;
+//Shader para dibujar el buffer de profunidad
+Shader shaderDepth;
 
 
 std::shared_ptr<Camera> camera(new ThirdPersonCamera());
@@ -74,6 +78,7 @@ float distanceFromTarget = 7.0;
 Sphere skyboxSphere(20, 20);
 Box boxCollider;
 Sphere sphereCollider(10, 10);
+Box boxViewDepth;
 
 // Models complex instances
 Model modelRock;
@@ -125,11 +130,11 @@ GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
 std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
-		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
-		"../Textures/mp_bloodvalley/blood-valley_up.tga",
-		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
-		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
-		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+        "../Textures/mp_bloodvalley/blood-valley_bk.tga",
+        "../Textures/mp_bloodvalley/blood-valley_up.tga",
+        "../Textures/mp_bloodvalley/blood-valley_dn.tga",
+        "../Textures/mp_bloodvalley/blood-valley_rt.tga",
+        "../Textures/mp_bloodvalley/blood-valley_lf.tga" };
 
 bool exitApp = false;
 int lastMousePosX, offsetX = 0;
@@ -178,19 +183,19 @@ float dorRotCount = 0.0;
 
 // Lamps positions
 std::vector<glm::vec3> lamp1Position = { glm::vec3(-7.03, 0, -19.14), glm::vec3(
-		24.41, 0, -34.57), glm::vec3(-10.15, 0, -54.10) };
+        24.41, 0, -34.57), glm::vec3(-10.15, 0, -54.10) };
 std::vector<float> lamp1Orientation = { -17.0, -82.67, 23.70 };
 std::vector<glm::vec3> lamp2Position = { glm::vec3(-36.52, 0, -23.24),
-		glm::vec3(-52.73, 0, -3.90) };
-std::vector<float> lamp2Orientation = {21.37 + 90, -65.0 + 90};
+        glm::vec3(-52.73, 0, -3.90) };
+std::vector<float> lamp2Orientation = { 21.37 + 90, -65.0 + 90 };
 
 // Blending model unsorted
 std::map<std::string, glm::vec3> blendingUnsorted = {
-		{"aircraft", glm::vec3(10.0, 0.0, -17.5)},
-		{"lambo", glm::vec3(23.0, 0.0, 0.0)},
-		{"heli", glm::vec3(5.0, 10.0, -5.0)},
-		{"fountain", glm::vec3(5.0, 0.0, -40.0)},
-		{"fire", glm::vec3(0.0, 0.0, 7.0)}
+        {"aircraft", glm::vec3(10.0, 0.0, -17.5)},
+        {"lambo", glm::vec3(23.0, 0.0, 0.0)},
+        {"heli", glm::vec3(5.0, 10.0, -5.0)},
+        {"fountain", glm::vec3(5.0, 0.0, -40.0)},
+        {"fire", glm::vec3(0.0, 0.0, 7.0)}
 };
 
 double deltaTime;
@@ -223,7 +228,7 @@ GLuint depthMap, depthMapFBO;
 // Se definen todos las funciones.
 void reshapeCallback(GLFWwindow *Window, int widthRes, int heightRes);
 void keyCallback(GLFWwindow *window, int key, int scancode, int action,
-		int mode);
+    int mode);
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -236,218 +241,220 @@ void prepareDepthScene();
 void renderScene(bool renderParticles = true);
 
 void initParticleBuffers() {
-	// Generate the buffers
-	glGenBuffers(1, &initVel);   // Initial velocity buffer
-	glGenBuffers(1, &startTime); // Start time buffer
+    // Generate the buffers
+    glGenBuffers(1, &initVel);   // Initial velocity buffer
+    glGenBuffers(1, &startTime); // Start time buffer
 
-	// Allocate space for all buffers
-	int size = nParticles * 3 * sizeof(float);
-	glBindBuffer(GL_ARRAY_BUFFER, initVel);
-	glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, startTime);
-	glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), NULL, GL_STATIC_DRAW);
+    // Allocate space for all buffers
+    int size = nParticles * 3 * sizeof(float);
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, startTime);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), NULL, GL_STATIC_DRAW);
 
-	// Fill the first velocity buffer with random velocities
-	glm::vec3 v(0.0f);
-	float velocity, theta, phi;
-	GLfloat *data = new GLfloat[nParticles * 3];
-	for (unsigned int i = 0; i < nParticles; i++) {
+    // Fill the first velocity buffer with random velocities
+    glm::vec3 v(0.0f);
+    float velocity, theta, phi;
+    GLfloat *data = new GLfloat[nParticles * 3];
+    for (unsigned int i = 0; i < nParticles; i++) {
 
-		theta = glm::mix(0.0f, glm::pi<float>() / 6.0f, ((float)rand() / RAND_MAX));
-		phi = glm::mix(0.0f, glm::two_pi<float>(), ((float)rand() / RAND_MAX));
+        theta = glm::mix(0.0f, glm::pi<float>() / 6.0f, ((float)rand() / RAND_MAX));
+        phi = glm::mix(0.0f, glm::two_pi<float>(), ((float)rand() / RAND_MAX));
 
-		v.x = sinf(theta) * cosf(phi);
-		v.y = cosf(theta);
-		v.z = sinf(theta) * sinf(phi);
+        v.x = sinf(theta) * cosf(phi);
+        v.y = cosf(theta);
+        v.z = sinf(theta) * sinf(phi);
 
-		velocity = glm::mix(0.6f, 0.8f, ((float)rand() / RAND_MAX));
-		v = glm::normalize(v) * velocity;
+        velocity = glm::mix(0.6f, 0.8f, ((float)rand() / RAND_MAX));
+        v = glm::normalize(v) * velocity;
 
-		data[3 * i] = v.x;
-		data[3 * i + 1] = v.y;
-		data[3 * i + 2] = v.z;
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, initVel);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+        data[3 * i] = v.x;
+        data[3 * i + 1] = v.y;
+        data[3 * i + 2] = v.z;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
 
-	// Fill the start time buffer
-	delete[] data;
-	data = new GLfloat[nParticles];
-	float time = 0.0f;
-	float rate = 0.00075f;
-	for (unsigned int i = 0; i < nParticles; i++) {
-		data[i] = time;
-		time += rate;
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, startTime);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, nParticles * sizeof(float), data);
+    // Fill the start time buffer
+    delete[] data;
+    data = new GLfloat[nParticles];
+    float time = 0.0f;
+    float rate = 0.00075f;
+    for (unsigned int i = 0; i < nParticles; i++) {
+        data[i] = time;
+        time += rate;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, startTime);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, nParticles * sizeof(float), data);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	delete[] data;
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    delete[] data;
 
-	glGenVertexArrays(1, &VAOParticles);
-	glBindVertexArray(VAOParticles);
-	glBindBuffer(GL_ARRAY_BUFFER, initVel);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
+    glGenVertexArrays(1, &VAOParticles);
+    glBindVertexArray(VAOParticles);
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, startTime);
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, startTime);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
 
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 }
 
 void initParticleBuffersFire() {
-	// Generate the buffers
-	glGenBuffers(2, posBuf);    // position buffers
-	glGenBuffers(2, velBuf);    // velocity buffers
-	glGenBuffers(2, age);       // age buffers
+    // Generate the buffers
+    glGenBuffers(2, posBuf);    // position buffers
+    glGenBuffers(2, velBuf);    // velocity buffers
+    glGenBuffers(2, age);       // age buffers
 
-	// Allocate space for all buffers
-	int size = nParticlesFire * sizeof(GLfloat);
-	glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
-	glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
-	glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
-	glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
-	glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_ARRAY_BUFFER, age[0]);
-	glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_ARRAY_BUFFER, age[1]);
-	glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_COPY);
+    // Allocate space for all buffers
+    int size = nParticlesFire * sizeof(GLfloat);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size, 0, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, age[0]);
+    glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, age[1]);
+    glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_COPY);
 
-	// Fill the first age buffer
-	std::vector<GLfloat> initialAge(nParticlesFire);
-	float rate = particleLifetime / nParticlesFire;
-	for(unsigned int i = 0; i < nParticlesFire; i++ ) {
-		int index = i - nParticlesFire;
-		float result = rate * index;
-		initialAge[i] = result;
-	}
-	// Shuffle them for better looking results
-	//Random::shuffle(initialAge);
-	auto rng = std::default_random_engine {};
-	std::shuffle(initialAge.begin(), initialAge.end(), rng);
-	glBindBuffer(GL_ARRAY_BUFFER, age[0]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, size, initialAge.data());
+    // Fill the first age buffer
+    std::vector<GLfloat> initialAge(nParticlesFire);
+    float rate = particleLifetime / nParticlesFire;
+    for (unsigned int i = 0; i < nParticlesFire; i++) {
+        int index = i - nParticlesFire;
+        float result = rate * index;
+        initialAge[i] = result;
+    }
+    // Shuffle them for better looking results
+    //Random::shuffle(initialAge);
+    auto rng = std::default_random_engine{};
+    std::shuffle(initialAge.begin(), initialAge.end(), rng);
+    glBindBuffer(GL_ARRAY_BUFFER, age[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, initialAge.data());
 
-	glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// Create vertex arrays for each set of buffers
-	glGenVertexArrays(2, particleArray);
+    // Create vertex arrays for each set of buffers
+    glGenVertexArrays(2, particleArray);
 
-	// Set up particle array 0
-	glBindVertexArray(particleArray[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
+    // Set up particle array 0
+    glBindVertexArray(particleArray[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
 
-	glBindBuffer(GL_ARRAY_BUFFER, age[0]);
-	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, age[0]);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);
 
-	// Set up particle array 1
-	glBindVertexArray(particleArray[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
+    // Set up particle array 1
+    glBindVertexArray(particleArray[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
 
-	glBindBuffer(GL_ARRAY_BUFFER, age[1]);
-	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, age[1]);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);
 
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 
-	// Setup the feedback objects
-	glGenTransformFeedbacks(2, feedback);
+    // Setup the feedback objects
+    glGenTransformFeedbacks(2, feedback);
 
-	// Transform feedback 0
-	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[0]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[0]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[0]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, age[0]);
+    // Transform feedback 0
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, age[0]);
 
-	// Transform feedback 1
-	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[1]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[1]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[1]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, age[1]);
+    // Transform feedback 1
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, age[1]);
 
-	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
 }
 
 // Implementacion de todas las funciones.
 void init(int width, int height, std::string strTitle, bool bFullScreen) {
 
-	if (!glfwInit()) {
-		std::cerr << "Failed to initialize GLFW" << std::endl;
-		exit(-1);
-	}
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        exit(-1);
+    }
 
-	screenWidth = width;
-	screenHeight = height;
+    screenWidth = width;
+    screenHeight = height;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	if (bFullScreen)
-		window = glfwCreateWindow(width, height, strTitle.c_str(),
-				glfwGetPrimaryMonitor(), nullptr);
-	else
-		window = glfwCreateWindow(width, height, strTitle.c_str(), nullptr,
-				nullptr);
+    if (bFullScreen)
+        window = glfwCreateWindow(width, height, strTitle.c_str(),
+            glfwGetPrimaryMonitor(), nullptr);
+    else
+        window = glfwCreateWindow(width, height, strTitle.c_str(), nullptr,
+            nullptr);
 
-	if (window == nullptr) {
-		std::cerr
-				<< "Error to create GLFW window, you can try download the last version of your video card that support OpenGL 3.3+"
-				<< std::endl;
-		destroy();
-		exit(-1);
-	}
+    if (window == nullptr) {
+        std::cerr
+            << "Error to create GLFW window, you can try download the last version of your video card that support OpenGL 3.3+"
+            << std::endl;
+        destroy();
+        exit(-1);
+    }
 
-	glfwMakeContextCurrent(window);
-	glfwSwapInterval(0);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
-	glfwSetWindowSizeCallback(window, reshapeCallback);
-	glfwSetKeyCallback(window, keyCallback);
-	glfwSetCursorPosCallback(window, mouseCallback);
-	glfwSetMouseButtonCallback(window, mouseButtonCallback);
-	glfwSetScrollCallback(window, scrollCallback);
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glfwSetWindowSizeCallback(window, reshapeCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
-	// Init glew
-	glewExperimental = GL_TRUE;
-	GLenum err = glewInit();
-	if (GLEW_OK != err) {
-		std::cerr << "Failed to initialize glew" << std::endl;
-		exit(-1);
-	}
+    // Init glew
+    glewExperimental = GL_TRUE;
+    GLenum err = glewInit();
+    if (GLEW_OK != err) {
+        std::cerr << "Failed to initialize glew" << std::endl;
+        exit(-1);
+    }
 
-	glViewport(0, 0, screenWidth, screenHeight);
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
-	// Inicialización de los shaders
-	shader.initialize("../Shaders/colorShader.vs", "../Shaders/colorShader.fs");
-	shaderSkybox.initialize("../Shaders/skyBox.vs", "../Shaders/skyBox_fog.fs");
-	shaderMulLighting.initialize("../Shaders/iluminacion_textura_animation_fog.vs", "../Shaders/multipleLights_fog.fs");
-	shaderTerrain.initialize("../Shaders/terrain_fog.vs", "../Shaders/terrain_fog.fs");
-	shaderParticlesFountain.initialize("../Shaders/particlesFountain.vs", "../Shaders/particlesFountain.fs");
-	shaderParticlesFire.initialize("../Shaders/particlesFire.vs", "../Shaders/particlesFire.fs", {"Position", "Velocity", "Age"});
+    // Inicialización de los shaders
+    shader.initialize("../Shaders/colorShader.vs", "../Shaders/colorShader.fs");
+    shaderSkybox.initialize("../Shaders/skyBox.vs", "../Shaders/skyBox_fog.fs");
+    shaderMulLighting.initialize("../Shaders/iluminacion_textura_animation_shadow.vs", "../Shaders/multipleLights_shadow.fs");
+    shaderTerrain.initialize("../Shaders/terrain_shadow.vs", "../Shaders/terrain_shadow.fs");
+    shaderParticlesFountain.initialize("../Shaders/particlesFountain.vs", "../Shaders/particlesFountain.fs");
+    shaderParticlesFire.initialize("../Shaders/particlesFire.vs", "../Shaders/particlesFire.fs", { "Position", "Velocity", "Age" });
+    shaderViewDepth.initialize("../Shaders/texturizado.vs", "../Shaders/texturizado_depth_view.fs");
+    shaderDepth.initialize("../Shaders/shadow_mapping_depth.vs", "../Shaders/shadow_mapping_depth.fs");
 
 	// Inicializacion de los objetos.
 	skyboxSphere.init();
@@ -461,6 +468,9 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	sphereCollider.init();
 	sphereCollider.setShader(&shader);
 	sphereCollider.setColor(glm::vec4(1.0, 1.0, 1.0, 1.0));
+
+	boxViewDepth.init();
+	boxViewDepth.setShader(&shaderViewDepth);
 
 	modelRock.loadModel("../models/rock/rock.obj");
 	modelRock.setShader(&shaderMulLighting);
@@ -1016,6 +1026,7 @@ void destroy() {
 	skyboxSphere.destroy();
 	boxCollider.destroy();
 	sphereCollider.destroy();
+	boxViewDepth.destroy();
 
 	// Terrains objects Delete
 	terrain.destroy();
@@ -1314,8 +1325,6 @@ void applicationLoop() {
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		if(modelSelected == 1){
 			axis = glm::axis(glm::quat_cast(modelMatrixDart));
 			angleTarget = glm::angle(glm::quat_cast(modelMatrixDart));
@@ -1338,6 +1347,16 @@ void applicationLoop() {
 		camera->updateCamera();
 		view = camera->getViewMatrix();
 
+		// Projection light shadow mapping
+		glm::mat4 lightProjection, lightView;
+		glm::mat4 lightSpaceMatrix;
+		float near_plane = 0.1f, far_plane = 20.0f;
+		//lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene
+		lightProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, near_plane, far_plane);
+		lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		lightSpaceMatrix = lightProjection * lightView;
+		shaderDepth.setMatrix4("lightSpaceMatrix", 1, false, glm::value_ptr(lightSpaceMatrix));
+
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
 		shader.setMatrix4("view", 1, false, glm::value_ptr(view));
@@ -1352,11 +1371,15 @@ void applicationLoop() {
 					glm::value_ptr(projection));
 		shaderMulLighting.setMatrix4("view", 1, false,
 				glm::value_ptr(view));
+		shaderMulLighting.setMatrix4("lightSpaceMatrix", 1, false,
+				glm::value_ptr(lightSpaceMatrix));
 		// Settea la matriz de vista y projection al shader con multiples luces
 		shaderTerrain.setMatrix4("projection", 1, false,
 					glm::value_ptr(projection));
 		shaderTerrain.setMatrix4("view", 1, false,
 				glm::value_ptr(view));
+		shaderTerrain.setMatrix4("lightSpaceMatrix", 1, false,
+				glm::value_ptr(lightSpaceMatrix));
 		// Settea la matriz de vista y projection al shader para el fountain
 		shaderParticlesFountain.setMatrix4("projection", 1, false,
 					glm::value_ptr(projection));
@@ -1470,287 +1493,47 @@ void applicationLoop() {
 		}
 
 		/*******************************************
-		 * Terrain Cesped
+		 * 1 Se dibuja la escena desde la luz
 		 *******************************************/
-		glm::mat4 modelCesped = glm::mat4(1.0);
-		modelCesped = glm::translate(modelCesped, glm::vec3(0.0, 0.0, 0.0));
-		modelCesped = glm::scale(modelCesped, glm::vec3(200.0, 0.001, 200.0));
-		// Se activa la textura del background
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureTerrainBackgroundID);
-		shaderTerrain.setInt("backgroundTexture", 0);
-		// Se activa la textura de tierra
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, textureTerrainRID);
-		shaderTerrain.setInt("rTexture", 1);
-		// Se activa la textura de hierba
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, textureTerrainGID);
-		shaderTerrain.setInt("gTexture", 2);
-		// Se activa la textura del camino
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, textureTerrainBID);
-		shaderTerrain.setInt("bTexture", 3);
-		// Se activa la textura del blend map
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, textureTerrainBlendMapID);
-		shaderTerrain.setInt("blendMapTexture", 4);
-		shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(40, 40)));
-		terrain.render();
-		shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(0, 0)));
-		glBindTexture(GL_TEXTURE_2D, 0);
+        //Se limpia el area de dibujo
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// render de la escena desde la luz
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glCullFace(GL_FRONT);
+		prepareDepthScene();
+		renderScene(false);
+		glCullFace(GL_BACK);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		/*******************************************
-		 * Custom objects obj
+		 * Debug to view the texture view map
 		 *******************************************/
-		//Rock render
-		matrixModelRock[3][1] = terrain.getHeightTerrain(matrixModelRock[3][0], matrixModelRock[3][2]);
-		modelRock.render(matrixModelRock);
-		// Forze to enable the unit texture to 0 always ----------------- IMPORTANT
+		// reset viewport
+		/*glViewport(0, 0, screenWidth, screenHeight);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// render Depth map to quad for visual debugging
+		shaderViewDepth.setMatrix4("projection", 1, false, glm::value_ptr(glm::mat4(1.0)));
+		shaderViewDepth.setMatrix4("view", 1, false, glm::value_ptr(glm::mat4(1.0)));
+		shaderViewDepth.setFloat("near_plane", near_plane);
+		shaderViewDepth.setFloat("far_plane", far_plane);
 		glActiveTexture(GL_TEXTURE0);
-
-		// Render the lamps
-		for (int i = 0; i < lamp1Position.size(); i++){
-			lamp1Position[i].y = terrain.getHeightTerrain(lamp1Position[i].x, lamp1Position[i].z);
-			modelLamp1.setPosition(lamp1Position[i]);
-			modelLamp1.setScale(glm::vec3(0.5, 0.5, 0.5));
-			modelLamp1.setOrientation(glm::vec3(0, lamp1Orientation[i], 0));
-			modelLamp1.render();
-		}
-
-		for (int i = 0; i < lamp2Position.size(); i++){
-			lamp2Position[i].y = terrain.getHeightTerrain(lamp2Position[i].x, lamp2Position[i].z);
-			modelLamp2.setPosition(lamp2Position[i]);
-			modelLamp2.setScale(glm::vec3(1.0, 1.0, 1.0));
-			modelLamp2.setOrientation(glm::vec3(0, lamp2Orientation[i], 0));
-			modelLamp2.render();
-			modelLampPost2.setPosition(lamp2Position[i]);
-			modelLampPost2.setScale(glm::vec3(1.0, 1.0, 1.0));
-			modelLampPost2.setOrientation(glm::vec3(0, lamp2Orientation[i], 0));
-			modelLampPost2.render();
-		}
-
-		// Grass
-		glDisable(GL_CULL_FACE);
-		glm::vec3 grassPosition = glm::vec3(0.0, 0.0, 0.0);
-		grassPosition.y = terrain.getHeightTerrain(grassPosition.x, grassPosition.z);
-		modelGrass.setPosition(grassPosition);
-		modelGrass.render();
-		glEnable(GL_CULL_FACE);
-
-		// Fountain
-		glDisable(GL_CULL_FACE);
-		modelFountain.render(modelMatrixFountain);
-		glEnable(GL_CULL_FACE);
-
-		// Dart lego
-		// Se deshabilita el cull faces IMPORTANTE para la capa
-		glDisable(GL_CULL_FACE);
-		modelMatrixDart[3][1] = terrain.getHeightTerrain(modelMatrixDart[3][0], modelMatrixDart[3][2]);
-		glm::mat4 modelMatrixDartBody = glm::mat4(modelMatrixDart);
-		modelMatrixDartBody = glm::scale(modelMatrixDartBody, glm::vec3(0.5, 0.5, 0.5));
-		modelDartLegoBody.render(modelMatrixDartBody);
-		glm::mat4 modelMatrixDartHead = glm::mat4(modelMatrixDartBody);
-		modelMatrixDartHead = glm::rotate(modelMatrixDartHead, rotDartHead, glm::vec3(0, 1, 0));
-		modelDartLegoHead.render(modelMatrixDartHead);
-		modelDartLegoMask.render(modelMatrixDartHead);
-		glm::mat4 modelMatrixDartLeftArm = glm::mat4(modelMatrixDartBody);
-		modelMatrixDartLeftArm = glm::translate(modelMatrixDartLeftArm, glm::vec3(-0.023515, 2.43607, 0.446066));
-		modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, glm::radians(-5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, rotDartLeftArm, glm::vec3(0, 0, 1));
-		modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, glm::radians(5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartLeftArm = glm::translate(modelMatrixDartLeftArm, glm::vec3(0.023515, -2.43607, -0.446066));
-		modelDartLegoLeftArm.render(modelMatrixDartLeftArm);
-		glm::mat4 modelMatrixDartLeftHand = glm::mat4(modelMatrixDartLeftArm);
-		modelMatrixDartLeftHand = glm::translate(modelMatrixDartLeftHand, glm::vec3(0.201343, 1.68317, 0.99774));
-		modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, glm::radians(-5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, rotDartLeftHand, glm::vec3(0, 1, 0));
-		modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, glm::radians(5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartLeftHand = glm::translate(modelMatrixDartLeftHand, glm::vec3(-0.201343, -1.68317, -0.99774));
-		modelDartLegoLeftHand.render(modelMatrixDartLeftHand);
-		glm::mat4 modelMatrixDartRightArm = glm::mat4(modelMatrixDartBody);
-		modelMatrixDartRightArm = glm::translate(modelMatrixDartRightArm, glm::vec3(-0.023515, 2.43607, -0.446066));
-		modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, glm::radians(5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, rotDartRightArm, glm::vec3(0, 0, 1));
-		modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, glm::radians(-5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartRightArm = glm::translate(modelMatrixDartRightArm, glm::vec3(0.023515, -2.43607, 0.446066));
-		modelDartLegoRightArm.render(modelMatrixDartRightArm);
-		glm::mat4 modelMatrixDartRightHand = glm::mat4(modelMatrixDartRightArm);
-		modelMatrixDartRightHand = glm::translate(modelMatrixDartRightHand, glm::vec3(0.201343, 1.68317, -0.99774));
-		modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, glm::radians(5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, rotDartRightHand, glm::vec3(0, 1, 0));
-		modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, glm::radians(-5.0f), glm::vec3(1, 0, 0));
-		modelMatrixDartRightHand = glm::translate(modelMatrixDartRightHand, glm::vec3(-0.201343, -1.68317, 0.99774));
-		modelDartLegoRightHand.render(modelMatrixDartRightHand);
-		glm::mat4 modelMatrixDartLeftLeg = glm::mat4(modelMatrixDartBody);
-		modelMatrixDartLeftLeg = glm::translate(modelMatrixDartLeftLeg, glm::vec3(0, 1.12632, 0.423349));
-		modelMatrixDartLeftLeg = glm::rotate(modelMatrixDartLeftLeg, rotDartLeftLeg, glm::vec3(0, 0, 1));
-		modelMatrixDartLeftLeg = glm::translate(modelMatrixDartLeftLeg, glm::vec3(0, -1.12632, -0.423349));
-		modelDartLegoLeftLeg.render(modelMatrixDartLeftLeg);
-		glm::mat4 modelMatrixDartRightLeg = glm::mat4(modelMatrixDartBody);
-		modelMatrixDartRightLeg = glm::translate(modelMatrixDartRightLeg, glm::vec3(0, 1.12632, -0.423349));
-		modelMatrixDartRightLeg = glm::rotate(modelMatrixDartRightLeg, rotDartRightLeg, glm::vec3(0, 0, 1));
-		modelMatrixDartRightLeg = glm::translate(modelMatrixDartRightLeg, glm::vec3(0, -1.12632, 0.423349));
-		modelDartLegoRightLeg.render(modelMatrixDartRightLeg);
-		// Se regresa el cull faces IMPORTANTE para la capa
-		glEnable(GL_CULL_FACE);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		boxViewDepth.setScale(glm::vec3(2.0, 2.0, 1.0));
+		boxViewDepth.render();*/
 
 		/*******************************************
-		 * Custom Anim objects obj
+		 * 2.- Se dibuja la escena de objetos normal
 		 *******************************************/
-		modelMatrixMayow[3][1] = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
-		glm::mat4 modelMatrixMayowBody = glm::mat4(modelMatrixMayow);
-		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
-		mayowModelAnimate.setAnimationIndex(animationIndex);
-		mayowModelAnimate.render(modelMatrixMayowBody);
-
-		/**********
-		 * Update the position with alpha objects
-		 */
-		// Update the aircraft
-		blendingUnsorted.find("aircraft")->second = glm::vec3(modelMatrixAircraft[3]);
-		// Update the lambo
-		blendingUnsorted.find("lambo")->second = glm::vec3(modelMatrixLambo[3]);
-		// Update the helicopter
-		blendingUnsorted.find("heli")->second = glm::vec3(modelMatrixHeli[3]);
-
-		/**********
-		 * Sorter with alpha objects
-		 */
-		std::map<float, std::pair<std::string, glm::vec3>> blendingSorted;
-		std::map<std::string, glm::vec3>::iterator itblend;
-		for(itblend = blendingUnsorted.begin(); itblend != blendingUnsorted.end(); itblend++){
-			float distanceFromView = glm::length(camera->getPosition() - itblend->second);
-			blendingSorted[distanceFromView] = std::make_pair(itblend->first, itblend->second);
-		}
-
-		/**********
-		 * Render de las transparencias
-		 */
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_CULL_FACE);
-		for(std::map<float, std::pair<std::string, glm::vec3> >::reverse_iterator it = blendingSorted.rbegin(); it != blendingSorted.rend(); it++){
-			if(it->second.first.compare("aircraft") == 0){
-				// Render for the aircraft model
-				glm::mat4 modelMatrixAircraftBlend = glm::mat4(modelMatrixAircraft);
-				modelMatrixAircraftBlend[3][1] = terrain.getHeightTerrain(modelMatrixAircraftBlend[3][0], modelMatrixAircraftBlend[3][2]) + 2.0;
-				modelAircraft.render(modelMatrixAircraftBlend);
-			}
-			else if(it->second.first.compare("lambo") == 0){
-				// Lambo car
-				glm::mat4 modelMatrixLamboBlend = glm::mat4(modelMatrixLambo);
-				modelMatrixLamboBlend[3][1] = terrain.getHeightTerrain(modelMatrixLamboBlend[3][0], modelMatrixLamboBlend[3][2]);
-				modelMatrixLamboBlend = glm::scale(modelMatrixLamboBlend, glm::vec3(1.3, 1.3, 1.3));
-				modelLambo.render(modelMatrixLamboBlend);
-				glActiveTexture(GL_TEXTURE0);
-				glm::mat4 modelMatrixLamboLeftDor = glm::mat4(modelMatrixLamboBlend);
-				modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(1.08676, 0.707316, 0.982601));
-				modelMatrixLamboLeftDor = glm::rotate(modelMatrixLamboLeftDor, glm::radians(dorRotCount), glm::vec3(1.0, 0, 0));
-				modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(-1.08676, -0.707316, -0.982601));
-				modelLamboLeftDor.render(modelMatrixLamboLeftDor);
-				modelLamboRightDor.render(modelMatrixLamboBlend);
-				modelLamboFrontLeftWheel.render(modelMatrixLamboBlend);
-				modelLamboFrontRightWheel.render(modelMatrixLamboBlend);
-				modelLamboRearLeftWheel.render(modelMatrixLamboBlend);
-				modelLamboRearRightWheel.render(modelMatrixLamboBlend);
-				// Se regresa el cull faces IMPORTANTE para las puertas
-			}
-			else if(it->second.first.compare("heli") == 0){
-				// Helicopter
-				glm::mat4 modelMatrixHeliChasis = glm::mat4(modelMatrixHeli);
-				modelHeliChasis.render(modelMatrixHeliChasis);
-
-				glm::mat4 modelMatrixHeliHeli = glm::mat4(modelMatrixHeliChasis);
-				modelMatrixHeliHeli = glm::translate(modelMatrixHeliHeli, glm::vec3(0.0, 0.0, -0.249548));
-				modelMatrixHeliHeli = glm::rotate(modelMatrixHeliHeli, rotHelHelY, glm::vec3(0, 1, 0));
-				modelMatrixHeliHeli = glm::translate(modelMatrixHeliHeli, glm::vec3(0.0, 0.0, 0.249548));
-				modelHeliHeli.render(modelMatrixHeliHeli);
-			}
-			else if(it->second.first.compare("fountain") == 0){
-				/**********
-				 * Init Render particles systems
-				 */
-				glm::mat4 modelMatrixParticlesFountain = glm::mat4(1.0);
-				modelMatrixParticlesFountain = glm::translate(modelMatrixParticlesFountain, it->second.second);
-				modelMatrixParticlesFountain[3][1] = terrain.getHeightTerrain(modelMatrixParticlesFountain[3][0], modelMatrixParticlesFountain[3][2]) + 0.36 * 10.0;
-				modelMatrixParticlesFountain = glm::scale(modelMatrixParticlesFountain, glm::vec3(3.0, 3.0, 3.0));
-				currTimeParticlesAnimation = TimeManager::Instance().GetTime();
-				if(currTimeParticlesAnimation - lastTimeParticlesAnimation > 10.0)
-					lastTimeParticlesAnimation = currTimeParticlesAnimation;
-				//glDisable(GL_DEPTH_TEST);
-				glDepthMask(GL_FALSE);
-				// Set the point size
-				glPointSize(10.0f);
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, textureParticleFountainID);
-				shaderParticlesFountain.turnOn();
-				shaderParticlesFountain.setFloat("Time", float(currTimeParticlesAnimation - lastTimeParticlesAnimation));
-				shaderParticlesFountain.setFloat("ParticleLifetime", 3.5f);
-				shaderParticlesFountain.setInt("ParticleTex", 0);
-				shaderParticlesFountain.setVectorFloat3("Gravity", glm::value_ptr(glm::vec3(0.0f, -0.3f, 0.0f)));
-				shaderParticlesFountain.setMatrix4("model", 1, false, glm::value_ptr(modelMatrixParticlesFountain));
-				glBindVertexArray(VAOParticles);
-				glDrawArrays(GL_POINTS, 0, nParticles);
-				glDepthMask(GL_TRUE);
-				//glEnable(GL_DEPTH_TEST);
-				shaderParticlesFountain.turnOff();
-				/**********
-				 * End Render particles systems
-				 */
-			}
-			else if(it->second.first.compare("fire") == 0){
-				/**********
-				 * Init Render particles systems
-				 */
-				lastTimeParticlesAnimationFire = currTimeParticlesAnimationFire;
-				currTimeParticlesAnimationFire = TimeManager::Instance().GetTime();
-
-				shaderParticlesFire.setInt("Pass", 1);
-				shaderParticlesFire.setFloat("Time", currTimeParticlesAnimationFire);
-				shaderParticlesFire.setFloat("DeltaT", currTimeParticlesAnimationFire - lastTimeParticlesAnimationFire);
-
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_1D, texId);
-				glEnable(GL_RASTERIZER_DISCARD);
-				glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[drawBuf]);
-				glBeginTransformFeedback(GL_POINTS);
-				glBindVertexArray(particleArray[1-drawBuf]);
-				glVertexAttribDivisor(0,0);
-				glVertexAttribDivisor(1,0);
-				glVertexAttribDivisor(2,0);
-				glDrawArrays(GL_POINTS, 0, nParticlesFire);
-				glEndTransformFeedback();
-				glDisable(GL_RASTERIZER_DISCARD);
-
-				shaderParticlesFire.setInt("Pass", 2);
-				glm::mat4 modelFireParticles = glm::mat4(1.0);
-				modelFireParticles = glm::translate(modelFireParticles, it->second.second);
-				modelFireParticles[3][1] = terrain.getHeightTerrain(modelFireParticles[3][0], modelFireParticles[3][2]);
-				shaderParticlesFire.setMatrix4("model", 1, false, glm::value_ptr(modelFireParticles));
-
-				shaderParticlesFire.turnOn();
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, textureParticleFireID);
-				glDepthMask(GL_FALSE);
-				glBindVertexArray(particleArray[drawBuf]);
-				glVertexAttribDivisor(0,1);
-				glVertexAttribDivisor(1,1);
-				glVertexAttribDivisor(2,1);
-				glDrawArraysInstanced(GL_TRIANGLES, 0, 6, nParticlesFire);
-				glBindVertexArray(0);
-				glDepthMask(GL_TRUE);
-				drawBuf = 1 - drawBuf;
-				shaderParticlesFire.turnOff();
-
-				/**********
-				 * End Render particles systems
-				 */
-			}
-
-		}
-		glEnable(GL_CULL_FACE);
-
+		glViewport(0, 0, screenWidth, screenHeight);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		prepareScene();
+		glActiveTexture(GL_TEXTURE10);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		shaderMulLighting.setInt("shadowMap", 10);
+		shaderTerrain.setInt("shadowMap", 10);
 		/*******************************************
 		 * Skybox
 		 *******************************************/
@@ -1766,6 +1549,7 @@ void applicationLoop() {
 		skyboxSphere.render();
 		glCullFace(oldCullFaceMode);
 		glDepthFunc(oldDepthFuncMode);
+		renderScene();
 
 		/*******************************************
 		 * Creacion de colliders
@@ -2072,7 +1856,7 @@ void applicationLoop() {
 	}
 }
 
-/*void prepareScene(){
+void prepareScene(){//Se deben de colocar los objetos nuevos
 
 	skyboxSphere.setShader(&shaderSkybox);
 
@@ -2115,9 +1899,9 @@ void applicationLoop() {
 
 	//Mayow
 	mayowModelAnimate.setShader(&shaderMulLighting);
-}*/
+}
 
-/*void prepareDepthScene(){
+void prepareDepthScene(){//Se deben colocar los objetos nuevos
 
 	skyboxSphere.setShader(&shaderDepth);
 
@@ -2160,9 +1944,290 @@ void applicationLoop() {
 
 	//Mayow
 	mayowModelAnimate.setShader(&shaderDepth);
-}*/
+}
 
 void renderScene(bool renderParticles){
+	/*******************************************
+	 * Terrain Cesped
+	 *******************************************/
+	glm::mat4 modelCesped = glm::mat4(1.0);
+	modelCesped = glm::translate(modelCesped, glm::vec3(0.0, 0.0, 0.0));
+	modelCesped = glm::scale(modelCesped, glm::vec3(200.0, 0.001, 200.0));
+	// Se activa la textura del background
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureTerrainBackgroundID);
+	shaderTerrain.setInt("backgroundTexture", 0);
+	// Se activa la textura de tierra
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textureTerrainRID);
+	shaderTerrain.setInt("rTexture", 1);
+	// Se activa la textura de hierba
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, textureTerrainGID);
+	shaderTerrain.setInt("gTexture", 2);
+	// Se activa la textura del camino
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, textureTerrainBID);
+	shaderTerrain.setInt("bTexture", 3);
+	// Se activa la textura del blend map
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, textureTerrainBlendMapID);
+	shaderTerrain.setInt("blendMapTexture", 4);
+	shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(40, 40)));
+	terrain.render();
+	shaderTerrain.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(0, 0)));
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	/*******************************************
+	 * Custom objects obj
+	 *******************************************/
+	//Rock render
+	matrixModelRock[3][1] = terrain.getHeightTerrain(matrixModelRock[3][0], matrixModelRock[3][2]);
+	modelRock.render(matrixModelRock);
+	// Forze to enable the unit texture to 0 always ----------------- IMPORTANT
+	glActiveTexture(GL_TEXTURE0);
+
+	// Render the lamps
+	for (int i = 0; i < lamp1Position.size(); i++){
+		lamp1Position[i].y = terrain.getHeightTerrain(lamp1Position[i].x, lamp1Position[i].z);
+		modelLamp1.setPosition(lamp1Position[i]);
+		modelLamp1.setScale(glm::vec3(0.5, 0.5, 0.5));
+		modelLamp1.setOrientation(glm::vec3(0, lamp1Orientation[i], 0));
+		modelLamp1.render();
+	}
+
+	for (int i = 0; i < lamp2Position.size(); i++){
+		lamp2Position[i].y = terrain.getHeightTerrain(lamp2Position[i].x, lamp2Position[i].z);
+		modelLamp2.setPosition(lamp2Position[i]);
+		modelLamp2.setScale(glm::vec3(1.0, 1.0, 1.0));
+		modelLamp2.setOrientation(glm::vec3(0, lamp2Orientation[i], 0));
+		modelLamp2.render();
+		modelLampPost2.setPosition(lamp2Position[i]);
+		modelLampPost2.setScale(glm::vec3(1.0, 1.0, 1.0));
+		modelLampPost2.setOrientation(glm::vec3(0, lamp2Orientation[i], 0));
+		modelLampPost2.render();
+	}
+
+	// Grass
+	glDisable(GL_CULL_FACE);
+	glm::vec3 grassPosition = glm::vec3(0.0, 0.0, 0.0);
+	grassPosition.y = terrain.getHeightTerrain(grassPosition.x, grassPosition.z);
+	modelGrass.setPosition(grassPosition);
+	modelGrass.render();
+	glEnable(GL_CULL_FACE);
+
+	// Fountain
+	glDisable(GL_CULL_FACE);
+	modelFountain.render(modelMatrixFountain);
+	glEnable(GL_CULL_FACE);
+
+	// Dart lego
+	// Se deshabilita el cull faces IMPORTANTE para la capa
+	glDisable(GL_CULL_FACE);
+	modelMatrixDart[3][1] = terrain.getHeightTerrain(modelMatrixDart[3][0], modelMatrixDart[3][2]);
+	glm::mat4 modelMatrixDartBody = glm::mat4(modelMatrixDart);
+	modelMatrixDartBody = glm::scale(modelMatrixDartBody, glm::vec3(0.5, 0.5, 0.5));
+	modelDartLegoBody.render(modelMatrixDartBody);
+	glm::mat4 modelMatrixDartHead = glm::mat4(modelMatrixDartBody);
+	modelMatrixDartHead = glm::rotate(modelMatrixDartHead, rotDartHead, glm::vec3(0, 1, 0));
+	modelDartLegoHead.render(modelMatrixDartHead);
+	modelDartLegoMask.render(modelMatrixDartHead);
+	glm::mat4 modelMatrixDartLeftArm = glm::mat4(modelMatrixDartBody);
+	modelMatrixDartLeftArm = glm::translate(modelMatrixDartLeftArm, glm::vec3(-0.023515, 2.43607, 0.446066));
+	modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, glm::radians(-5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, rotDartLeftArm, glm::vec3(0, 0, 1));
+	modelMatrixDartLeftArm = glm::rotate(modelMatrixDartLeftArm, glm::radians(5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartLeftArm = glm::translate(modelMatrixDartLeftArm, glm::vec3(0.023515, -2.43607, -0.446066));
+	modelDartLegoLeftArm.render(modelMatrixDartLeftArm);
+	glm::mat4 modelMatrixDartLeftHand = glm::mat4(modelMatrixDartLeftArm);
+	modelMatrixDartLeftHand = glm::translate(modelMatrixDartLeftHand, glm::vec3(0.201343, 1.68317, 0.99774));
+	modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, glm::radians(-5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, rotDartLeftHand, glm::vec3(0, 1, 0));
+	modelMatrixDartLeftHand = glm::rotate(modelMatrixDartLeftHand, glm::radians(5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartLeftHand = glm::translate(modelMatrixDartLeftHand, glm::vec3(-0.201343, -1.68317, -0.99774));
+	modelDartLegoLeftHand.render(modelMatrixDartLeftHand);
+	glm::mat4 modelMatrixDartRightArm = glm::mat4(modelMatrixDartBody);
+	modelMatrixDartRightArm = glm::translate(modelMatrixDartRightArm, glm::vec3(-0.023515, 2.43607, -0.446066));
+	modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, glm::radians(5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, rotDartRightArm, glm::vec3(0, 0, 1));
+	modelMatrixDartRightArm = glm::rotate(modelMatrixDartRightArm, glm::radians(-5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartRightArm = glm::translate(modelMatrixDartRightArm, glm::vec3(0.023515, -2.43607, 0.446066));
+	modelDartLegoRightArm.render(modelMatrixDartRightArm);
+	glm::mat4 modelMatrixDartRightHand = glm::mat4(modelMatrixDartRightArm);
+	modelMatrixDartRightHand = glm::translate(modelMatrixDartRightHand, glm::vec3(0.201343, 1.68317, -0.99774));
+	modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, glm::radians(5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, rotDartRightHand, glm::vec3(0, 1, 0));
+	modelMatrixDartRightHand = glm::rotate(modelMatrixDartRightHand, glm::radians(-5.0f), glm::vec3(1, 0, 0));
+	modelMatrixDartRightHand = glm::translate(modelMatrixDartRightHand, glm::vec3(-0.201343, -1.68317, 0.99774));
+	modelDartLegoRightHand.render(modelMatrixDartRightHand);
+	glm::mat4 modelMatrixDartLeftLeg = glm::mat4(modelMatrixDartBody);
+	modelMatrixDartLeftLeg = glm::translate(modelMatrixDartLeftLeg, glm::vec3(0, 1.12632, 0.423349));
+	modelMatrixDartLeftLeg = glm::rotate(modelMatrixDartLeftLeg, rotDartLeftLeg, glm::vec3(0, 0, 1));
+	modelMatrixDartLeftLeg = glm::translate(modelMatrixDartLeftLeg, glm::vec3(0, -1.12632, -0.423349));
+	modelDartLegoLeftLeg.render(modelMatrixDartLeftLeg);
+	glm::mat4 modelMatrixDartRightLeg = glm::mat4(modelMatrixDartBody);
+	modelMatrixDartRightLeg = glm::translate(modelMatrixDartRightLeg, glm::vec3(0, 1.12632, -0.423349));
+	modelMatrixDartRightLeg = glm::rotate(modelMatrixDartRightLeg, rotDartRightLeg, glm::vec3(0, 0, 1));
+	modelMatrixDartRightLeg = glm::translate(modelMatrixDartRightLeg, glm::vec3(0, -1.12632, 0.423349));
+	modelDartLegoRightLeg.render(modelMatrixDartRightLeg);
+	// Se regresa el cull faces IMPORTANTE para la capa
+	glEnable(GL_CULL_FACE);
+
+	/*******************************************
+	 * Custom Anim objects obj
+	 *******************************************/
+	modelMatrixMayow[3][1] = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
+	glm::mat4 modelMatrixMayowBody = glm::mat4(modelMatrixMayow);
+	modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
+	mayowModelAnimate.setAnimationIndex(animationIndex);
+	mayowModelAnimate.render(modelMatrixMayowBody);
+
+	/**********
+	 * Update the position with alpha objects
+	 */
+	// Update the aircraft
+	blendingUnsorted.find("aircraft")->second = glm::vec3(modelMatrixAircraft[3]);
+	// Update the lambo
+	blendingUnsorted.find("lambo")->second = glm::vec3(modelMatrixLambo[3]);
+	// Update the helicopter
+	blendingUnsorted.find("heli")->second = glm::vec3(modelMatrixHeli[3]);
+
+	/**********
+	 * Sorter with alpha objects
+	 */
+	std::map<float, std::pair<std::string, glm::vec3>> blendingSorted;
+	std::map<std::string, glm::vec3>::iterator itblend;
+	for(itblend = blendingUnsorted.begin(); itblend != blendingUnsorted.end(); itblend++){
+		float distanceFromView = glm::length(camera->getPosition() - itblend->second);
+		blendingSorted[distanceFromView] = std::make_pair(itblend->first, itblend->second);
+	}
+
+	/**********
+	 * Render de las transparencias
+	 */
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_CULL_FACE);
+	for(std::map<float, std::pair<std::string, glm::vec3> >::reverse_iterator it = blendingSorted.rbegin(); it != blendingSorted.rend(); it++){
+		if(it->second.first.compare("aircraft") == 0){
+			// Render for the aircraft model
+			glm::mat4 modelMatrixAircraftBlend = glm::mat4(modelMatrixAircraft);
+			modelMatrixAircraftBlend[3][1] = terrain.getHeightTerrain(modelMatrixAircraftBlend[3][0], modelMatrixAircraftBlend[3][2]) + 2.0;
+			modelAircraft.render(modelMatrixAircraftBlend);
+		}
+		else if(it->second.first.compare("lambo") == 0){
+			// Lambo car
+			glm::mat4 modelMatrixLamboBlend = glm::mat4(modelMatrixLambo);
+			modelMatrixLamboBlend[3][1] = terrain.getHeightTerrain(modelMatrixLamboBlend[3][0], modelMatrixLamboBlend[3][2]);
+			modelMatrixLamboBlend = glm::scale(modelMatrixLamboBlend, glm::vec3(1.3, 1.3, 1.3));
+			modelLambo.render(modelMatrixLamboBlend);
+			glActiveTexture(GL_TEXTURE0);
+			glm::mat4 modelMatrixLamboLeftDor = glm::mat4(modelMatrixLamboBlend);
+			modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(1.08676, 0.707316, 0.982601));
+			modelMatrixLamboLeftDor = glm::rotate(modelMatrixLamboLeftDor, glm::radians(dorRotCount), glm::vec3(1.0, 0, 0));
+			modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(-1.08676, -0.707316, -0.982601));
+			modelLamboLeftDor.render(modelMatrixLamboLeftDor);
+			modelLamboRightDor.render(modelMatrixLamboBlend);
+			modelLamboFrontLeftWheel.render(modelMatrixLamboBlend);
+			modelLamboFrontRightWheel.render(modelMatrixLamboBlend);
+			modelLamboRearLeftWheel.render(modelMatrixLamboBlend);
+			modelLamboRearRightWheel.render(modelMatrixLamboBlend);
+			// Se regresa el cull faces IMPORTANTE para las puertas
+		}
+		else if(it->second.first.compare("heli") == 0){
+			// Helicopter
+			glm::mat4 modelMatrixHeliChasis = glm::mat4(modelMatrixHeli);
+			modelHeliChasis.render(modelMatrixHeliChasis);
+
+			glm::mat4 modelMatrixHeliHeli = glm::mat4(modelMatrixHeliChasis);
+			modelMatrixHeliHeli = glm::translate(modelMatrixHeliHeli, glm::vec3(0.0, 0.0, -0.249548));
+			modelMatrixHeliHeli = glm::rotate(modelMatrixHeliHeli, rotHelHelY, glm::vec3(0, 1, 0));
+			modelMatrixHeliHeli = glm::translate(modelMatrixHeliHeli, glm::vec3(0.0, 0.0, 0.249548));
+			modelHeliHeli.render(modelMatrixHeliHeli);
+		}
+		else if(renderParticles && it->second.first.compare("fountain") == 0){
+			/**********
+			 * Init Render particles systems
+			 */
+			glm::mat4 modelMatrixParticlesFountain = glm::mat4(1.0);
+			modelMatrixParticlesFountain = glm::translate(modelMatrixParticlesFountain, it->second.second);
+			modelMatrixParticlesFountain[3][1] = terrain.getHeightTerrain(modelMatrixParticlesFountain[3][0], modelMatrixParticlesFountain[3][2]) + 0.36 * 10.0;
+			modelMatrixParticlesFountain = glm::scale(modelMatrixParticlesFountain, glm::vec3(3.0, 3.0, 3.0));
+			currTimeParticlesAnimation = TimeManager::Instance().GetTime();
+			if(currTimeParticlesAnimation - lastTimeParticlesAnimation > 10.0)
+				lastTimeParticlesAnimation = currTimeParticlesAnimation;
+			//glDisable(GL_DEPTH_TEST);
+			glDepthMask(GL_FALSE);
+			// Set the point size
+			glPointSize(10.0f);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureParticleFountainID);
+			shaderParticlesFountain.turnOn();
+			shaderParticlesFountain.setFloat("Time", float(currTimeParticlesAnimation - lastTimeParticlesAnimation));
+			shaderParticlesFountain.setFloat("ParticleLifetime", 3.5f);
+			shaderParticlesFountain.setInt("ParticleTex", 0);
+			shaderParticlesFountain.setVectorFloat3("Gravity", glm::value_ptr(glm::vec3(0.0f, -0.3f, 0.0f)));
+			shaderParticlesFountain.setMatrix4("model", 1, false, glm::value_ptr(modelMatrixParticlesFountain));
+			glBindVertexArray(VAOParticles);
+			glDrawArrays(GL_POINTS, 0, nParticles);
+			glDepthMask(GL_TRUE);
+			//glEnable(GL_DEPTH_TEST);
+			shaderParticlesFountain.turnOff();
+			/**********
+			 * End Render particles systems
+			 */
+		}
+		else if(renderParticles && it->second.first.compare("fire") == 0){
+			/**********
+			 * Init Render particles systems
+			 */
+			lastTimeParticlesAnimationFire = currTimeParticlesAnimationFire;
+			currTimeParticlesAnimationFire = TimeManager::Instance().GetTime();
+
+			shaderParticlesFire.setInt("Pass", 1);
+			shaderParticlesFire.setFloat("Time", currTimeParticlesAnimationFire);
+			shaderParticlesFire.setFloat("DeltaT", currTimeParticlesAnimationFire - lastTimeParticlesAnimationFire);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_1D, texId);
+			glEnable(GL_RASTERIZER_DISCARD);
+			glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[drawBuf]);
+			glBeginTransformFeedback(GL_POINTS);
+			glBindVertexArray(particleArray[1-drawBuf]);
+			glVertexAttribDivisor(0,0);
+			glVertexAttribDivisor(1,0);
+			glVertexAttribDivisor(2,0);
+			glDrawArrays(GL_POINTS, 0, nParticlesFire);
+			glEndTransformFeedback();
+			glDisable(GL_RASTERIZER_DISCARD);
+
+			shaderParticlesFire.setInt("Pass", 2);
+			glm::mat4 modelFireParticles = glm::mat4(1.0);
+			modelFireParticles = glm::translate(modelFireParticles, it->second.second);
+			modelFireParticles[3][1] = terrain.getHeightTerrain(modelFireParticles[3][0], modelFireParticles[3][2]);
+			shaderParticlesFire.setMatrix4("model", 1, false, glm::value_ptr(modelFireParticles));
+
+			shaderParticlesFire.turnOn();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureParticleFireID);
+			glDepthMask(GL_FALSE);
+			glBindVertexArray(particleArray[drawBuf]);
+			glVertexAttribDivisor(0,1);
+			glVertexAttribDivisor(1,1);
+			glVertexAttribDivisor(2,1);
+			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, nParticlesFire);
+			glBindVertexArray(0);
+			glDepthMask(GL_TRUE);
+			drawBuf = 1 - drawBuf;
+			shaderParticlesFire.turnOff();
+
+			/**********
+			 * End Render particles systems
+			 */
+		}
+
+	}
+	glEnable(GL_CULL_FACE);
 }
 
 int main(int argc, char **argv) {
